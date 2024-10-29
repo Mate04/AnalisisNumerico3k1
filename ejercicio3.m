@@ -1,78 +1,55 @@
+% Ejercicio 3 - Convolución mediante la FFT en Octave
+
 % Parámetros
-Nx = 301;  % Número de muestras para x[n]
-Delta_t = 0.0001;  % Intervalo de muestreo (10,000 Hz)
-t = (0:Nx-1) * Delta_t;  % Vector de tiempo discreto
-Fc = 800;  % Frecuencia de corte en Hz
-Nh = 51;  % Tamaño de la ventana de h[n], impar
-n_h = (-(Nh - 1)/2 : (Nh - 1)/2);  % Índices para h[n]
+Fs = 1 / 0.0001; % Frecuencia de muestreo (10 kHz)
+Nx = 301; % Número de muestras para x[n]
+Nh = 51;  % Número de muestras para h[n] (impar para centrar)
+Fc = 800; % Frecuencia de corte
 
-% Señal de entrada x[n]
-x_n = -5 * cos(2 * pi * 100 * t) + 3 * sin(2 * pi * 1500 * t);
+% Vector de tiempo
+dt = 1 / Fs; % Intervalo de muestreo
+n_x = 0:(Nx-1); % Vector de índices para x[n]
+n_h = -(Nh-1)/2:(Nh-1)/2; % Vector de índices centrado para h[n]
 
-% Respuesta al impulso h[n]
-h_n = 2 * Fc * Delta_t * sinc(2 * Fc * Delta_t * n_h);
+% Definición de la señal x[n] (muestras de la señal analógica)
+x = -5 * cos(2 * pi * 100 * n_x * dt) + 3 * sin(2 * pi * 1500 * n_x * dt);
 
-% Ajustar dimensiones para FFT (potencia de 2)
-N = 2^nextpow2(length(x_n) + length(h_n) - 1);
+% Definición de la respuesta al impulso h[n]
+h = 2 * Fc * dt * sinc(2 * Fc * dt * n_h);
 
-% Rellenar con ceros las señales x[n] y h[n]
-x_n_pad = [x_n, zeros(1, N - length(x_n))];
-h_n_pad = [h_n, zeros(1, N - length(h_n))];
+% Redimensionamos x y h para que tengan longitud N = 512 (potencia de 2)
+N = 512;
+x_padded = [x, zeros(1, N - length(x))];
+h_padded = [h, zeros(1, N - length(h))];
 
-% FFT de las señales
-X_k = fft(x_n_pad);
-H_k = fft(h_n_pad);
-
-% Multiplicación en el dominio de la frecuencia
-Y_k = X_k .* H_k;
-
-% Transformada inversa para obtener y[n]
-y_n_fft = real(ifft(Y_k));
-
-% Vector de tiempo para y[n]
-n_y = 0:length(y_n_fft)-1;
+% Convolución mediante FFT
+X = fft(x_padded);
+H = fft(h_padded);
+Y = X .* H; % Multiplicación en el dominio de la frecuencia
+y_fft = ifft(Y); % Transformada inversa para obtener y[n]
 
 % Gráficos
 figure;
 
-% Primera columna: Señales en el dominio del tiempo
-subplot(3,2,1);
-stem(0:Nx-1, x_n, 'Marker','none');
-title('Señal de entrada x[n] (Tiempo)');
-xlabel('n');
-ylabel('x[n]');
-xlim([0 Nx-1]);
+% Primer columna: señales en el dominio del tiempo
+subplot(3, 2, 1);
+stem(0:N-1, x_padded, 'filled'); title('x[n] en tiempo'); xlabel('n'); ylabel('Amplitud');
 
-subplot(3,2,3);
-stem(n_h, h_n, 'Marker','none');
-title('Respuesta al impulso h[n] (Tiempo)');
-xlabel('n');
-ylabel('h[n]');
-xlim([min(n_h) max(n_h)]);
+subplot(3, 2, 3);
+stem(0:N-1, h_padded, 'filled'); title('h[n] en tiempo'); xlabel('n'); ylabel('Amplitud');
 
-subplot(3,2,5);
-stem(n_y, y_n_fft, 'Marker','none');
-title('Señal de salida y[n] (Tiempo)');
-xlabel('n');
-ylabel('y[n]');
-xlim([0 length(y_n_fft)-1]);
+subplot(3, 2, 5);
+stem(0:N-1, y_fft, 'filled'); title('y[n] en tiempo (FFT)'); xlabel('n'); ylabel('Amplitud');
 
-% Segunda columna: Espectros en el dominio de la frecuencia
-subplot(3,2,2);
-stem(0:N-1, abs(X_k), 'Marker','none');
-title('Espectro X[k] (Frecuencia)');
-xlabel('k');
-ylabel('|X[k]|');
+% Segunda columna: Magnitud en el dominio de la frecuencia
+subplot(3, 2, 2);
+stem(0:N-1, abs(X), 'filled'); title('|X[k]| en frecuencia'); xlabel('k'); ylabel('Magnitud');
 
-subplot(3,2,4);
-stem(0:N-1, abs(H_k), 'Marker','none');
-title('Espectro H[k] (Frecuencia)');
-xlabel('k');
-ylabel('|H[k]|');
+subplot(3, 2, 4);
+stem(0:N-1, abs(H), 'filled'); title('|H[k]| en frecuencia'); xlabel('k'); ylabel('Magnitud');
 
-subplot(3,2,6);
-stem(0:N-1, abs(Y_k), 'Marker','none');
-title('Espectro Y[k] (Frecuencia)');
-xlabel('k');
-ylabel('|Y[k]|');
+subplot(3, 2, 6);
+stem(0:N-1, abs(Y), 'filled'); title('|Y[k]| en frecuencia'); xlabel('k'); ylabel('Magnitud');
 
+% Mostrar los gráficos
+sgtitle('Resultados del Ejercicio 3 - Convolución usando FFT');
